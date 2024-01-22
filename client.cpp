@@ -18,6 +18,8 @@ void recv_file(int, const std::string&);
 void upload_file(int, const std::string&);
 void initate_upload_command(int, const std::string&);
 void initate_get_command(int, const std::string&);
+void initate_delete_command(int, const std::string&);
+
 std::string extract_filename(const char * buffer, const size_t& size);
 std::streampos get_filesize(const std::string&, bool);
 
@@ -66,13 +68,43 @@ int main(){
 		else if(command[0] == 'u' and command.length() > 2 and command[1] == ' '){
 			initate_upload_command(client_fd, command);
 		}
-		
+		else if(command[0] == 'd' and command.length() > 2 and command[1] == ' '){
+			std::cout << "delete command" << std::endl;
+			initate_delete_command(client_fd, command);
+		}
 	}
 	
 	close(client_fd);
 	
 	return 0;
 }
+
+void initate_delete_command(int client_fd, const std::string& command){
+	std::string filename = extract_filename(&command[0], command.length());
+	send(
+		client_fd,
+		&command[0],
+		command.length(),
+		0
+	);
+	
+	char buffer[BUFFER_SIZE];
+	buffer[recv(
+		client_fd,
+		buffer,
+		BUFFER_SIZE - 1,
+		0
+	)] = '\0';
+
+	if(buffer[0] == '0'){
+		std::cout << "File: " << filename << " successfully deleted" << std::endl; 
+	} else if(buffer[0] == '1'){
+		std::cout << "File: " << filename << " deletion failed" << std::endl; 
+	} else if(buffer[0] == '2'){
+		std::cout << "File: " << filename << " could not deleted because it does not exist on the server" << std::endl; 
+	}
+}
+
 
 void initate_upload_command(int client_fd, const std::string& command){
 	send(

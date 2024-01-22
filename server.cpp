@@ -3,9 +3,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <cstdio>
+#include <unistd.h>
 #include <vector>
 #include <sstream>
 #include <fstream>
+
 
 #define PORT 8080
 #define FILE_STORE "./file/"
@@ -15,10 +18,11 @@ std::string extract_filename(char * buffer, const size_t& size);
 void sendfile(const std::string& filename, int);
 void recv_file_command(int, const std::string&);
 void recv_file(const std::string& filename, int);
+void delete_file(int, const std::string&);
 std::streampos get_filesize(const std::string& filename, bool);
 
 int main(){
-	std::cout << "Setting up server..." << std::endl;
+	std::cout << "Setting up server..." << std::endl << "Files will be sent to " << FILE_STORE << std::endl;
 	int server_fd, client_fd, opt = 1;
 	struct sockaddr_in addr;
 	
@@ -71,10 +75,6 @@ int main(){
 
 	std::cout << "Message from client: " << buffer << std::endl;
 	
-	
-	// REASON FOR SEG FAULT IS bytes_recv is getting a crazy large number after first recv of command and that is causing us to access another process's memory
-	// making recv_bytes ssize_t fixed it
-
 	char command_buffer[1024];
 	while(true){
 		std::cout << "Waiting on command from client ..." << std::endl;
@@ -96,7 +96,10 @@ int main(){
 			sendfile(filename, client_fd);
 		} else if(command_buffer[0] == 'u' && bytes_recv > 2 && command_buffer[1] == ' '){
 			recv_file_command(client_fd, extract_filename(command_buffer, bytes_recv));
-			//
+		} else if(command_buffer[0] == 'd' && bytes_recv > 2 && command_buffer[1] == ' '){
+			delete_file(client_fd, extract_filename(command_buffer, bytes_recv));
+		} else if(command_buffer == "exit"){
+			break;
 		}
 		
 	}
@@ -105,6 +108,38 @@ int main(){
 	close(client_fd);
 	
 	return 0;
+}
+
+void delete_file(int client_fd, const std::string& filename){
+	int del_result = 0; // can be 0 | 1 | 2
+	std::string filepath = FILE_STORE + filename;
+	ssize_t existence_result = access(filepath.data(), F_OK);
+	
+	auto send_payload = [client_fd](const char* code){
+		send(
+			client_fd, 
+			code,
+			1,
+			0
+		);
+	};
+	if(existence_result == -1) {
+		std::cout << filename << " does not exists" << std::endl;
+		char code[] = "2";
+		send_payload(code);
+		return;
+	}
+	std::cout << filename << " exists" << std::endl;
+	del_result = remove(filepath.data());
+	if(del_result == 0){
+		std::cout << "removed " << filename << std::endl;
+		char code[] = "0";
+		send_payload(code);
+	} else {
+		std::cout << "could not remove " << filename << std::endl;
+		char code[] = "1";
+		send_payload(code);
+	}
 }
 
 void recv_file_command(int client_fd, const std::string& filename){
@@ -194,8 +229,7 @@ void recv_file(const std::string& filename, int client_fd){
 	);
 	buffer[bytes_recv] = '\0';
 	
-	//std::cout << "full payload recv: " << buffer << std::endl;
-	
+
 	if(buffer[0] == '1'){
 		std::cout << "Client could not upload file: " << filename << std::endl;
 		return ;
