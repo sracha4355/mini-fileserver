@@ -16,6 +16,8 @@
 
 void recv_file(int, const std::string&);
 void upload_file(int, const std::string&);
+void initate_upload_command(int, const std::string&);
+void initate_get_command(int, const std::string&);
 std::string extract_filename(const char * buffer, const size_t& size);
 std::streampos get_filesize(const std::string&, bool);
 
@@ -58,27 +60,63 @@ int main(){
 		std::string command;
 		std::getline(std::cin, command);
 		std::cout << "command: " << command << std::endl;
-		send(client_fd, &command[0], command.length(), 0);
 		if(command[0] == 'g' and command.length() > 2 and command[1] == ' '){
-			recv_file(
-				client_fd, 
-				extract_filename(&command[0], command.length())
-			);
-	
+			initate_get_command(client_fd, command);
 		} 
-		/*else if(command[0] == 'u' and command.length() > 2 and command[1] == ' '){
-			upload_file(
-				client_fd,
-				extract_filename(&command[0], command.length())
-			);
+		else if(command[0] == 'u' and command.length() > 2 and command[1] == ' '){
+			initate_upload_command(client_fd, command);
 		}
-		*/
+		
 	}
 	
 	close(client_fd);
 	
 	return 0;
 }
+
+void initate_upload_command(int client_fd, const std::string& command){
+	send(
+		client_fd,
+		&command[0], 
+		command.length(),
+		0
+	);
+	std::cout << "sent command" << std::endl;
+	std::string filename = extract_filename(&command[0], command.length());
+	char buffer[BUFFER_SIZE];
+	std::cout << "waiting on res" << std::endl;
+	ssize_t bytes_recv = recv(
+		client_fd,
+		buffer,
+		BUFFER_SIZE - 1,
+		0
+	);
+	std::cout << "got res" << std::endl;
+	if(buffer[0] == '1'){
+		std::cout << "file " << filename << " could not be uploaded" << std::endl;
+		return;		
+	} else if(buffer[0] == '0'){
+		std::cout << "Server is ready for upload " << filename << std::endl;
+	}
+	
+	upload_file(client_fd, filename);	
+}
+
+void initate_get_command(int client_fd, const std::string& command){
+	send(
+		client_fd,
+		&command[0],
+		command.length(),
+		0
+	);
+
+	recv_file(
+		client_fd,
+	 	extract_filename(&command[0], command.length())
+	);
+	
+}
+
 
 std::string extract_filename(const char * buffer, const size_t& size){
 	std::vector<char> data;
@@ -163,7 +201,7 @@ void upload_file(int client_fd, const std::string& filename){
 		return;
 	}
 	std::ostringstream oss;
-	oss << "0|" << std::to_string(filesize) << "|" << std::endl;
+	oss << "0|" << std::to_string(filesize) << "|";
 	char byte;
 	while(input_file.read(&byte, sizeof(char))){
 		oss << byte;
@@ -175,6 +213,7 @@ void upload_file(int client_fd, const std::string& filename){
 		buffer.length(),
 		0
 	);
+
 	std::cout << "File uploaded successfully to server" << std::endl;
 }
 

@@ -13,6 +13,7 @@
 
 std::string extract_filename(char * buffer, const size_t& size);
 void sendfile(const std::string& filename, int);
+void recv_file_command(int, const std::string&);
 void recv_file(const std::string& filename, int);
 std::streampos get_filesize(const std::string& filename, bool);
 
@@ -76,6 +77,7 @@ int main(){
 
 	char command_buffer[1024];
 	while(true){
+		std::cout << "Waiting on command from client ..." << std::endl;
 		bytes_recv = recv(
 			client_fd,
 			command_buffer,
@@ -87,13 +89,15 @@ int main(){
 			break;
 		}
 		command_buffer[bytes_recv] = '\0';
+		
 		std::cout << "Command from client: " << command_buffer << std::endl;
 		if(command_buffer[0] == 'g' && bytes_recv > 2 && command_buffer[1] == ' '){
 			std::string filename = extract_filename(command_buffer, bytes_recv);
 			sendfile(filename, client_fd);
-		} /*else if(command_buffer[0] == 'u' && bytes_recv > 2 && command_buffer[1] == ' '){
-			recv_file(extract_filename(command_buffer, bytes_recv), client_fd);
-		}*/
+		} else if(command_buffer[0] == 'u' && bytes_recv > 2 && command_buffer[1] == ' '){
+			recv_file_command(client_fd, extract_filename(command_buffer, bytes_recv));
+			//
+		}
 		
 	}
 	
@@ -102,6 +106,31 @@ int main(){
 	
 	return 0;
 }
+
+void recv_file_command(int client_fd, const std::string& filename){
+	bool suitable = true;
+	if(!suitable){
+		std::string err_msg = "1";
+		send(
+			client_fd, 
+			&err_msg[0],
+			err_msg.length(),
+			0
+		);
+		std::cout << "Filename cannot be uploaded" << std::endl;
+		return;
+	}
+	std::string OK = "0";
+	send(
+		client_fd,
+		&OK[0],
+		1,
+		0
+	);	
+	
+	recv_file(filename, client_fd);		
+}
+	
 
 std::string extract_filename(char * buffer, const size_t& size){
 	std::vector<char> data;
@@ -164,11 +193,13 @@ void recv_file(const std::string& filename, int client_fd){
 		0
 	);
 	buffer[bytes_recv] = '\0';
+	
+	//std::cout << "full payload recv: " << buffer << std::endl;
+	
 	if(buffer[0] == '1'){
 		std::cout << "Client could not upload file: " << filename << std::endl;
 		return ;
 	}
-	std::cout << "seg1" << std::endl;
 	std::ofstream fs(FILE_STORE + filename, std::ios::binary | std::ios::out);
 	size_t index = 2;	
 	std::ostringstream oss;
@@ -176,20 +207,16 @@ void recv_file(const std::string& filename, int client_fd){
 		oss << buffer[index];
 		index++;
 	}
-	std::cout << "seg2" << std::endl;
+
 	int filesize = std::stoi(oss.str());
 	size_t readbytes = 0;
 	index++;
-	std::cout << "br: " << bytes_recv << std::endl;
 	while(true){
-		//std::cout << "index: " << index << " br: " << bytes_recv << std::endl;
 		fs.write(&buffer[index], 1);
-		//std::cout << "seg3" << std::endl;
 		readbytes++;
 		index++;
 		if(readbytes == filesize) break;
 		if(index == bytes_recv){
-			//std::cout << "seg4" << std::endl;
 			index = 0;
 			bytes_recv = recv(
 				client_fd,
