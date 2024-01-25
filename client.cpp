@@ -66,7 +66,7 @@ int main(int argc, char * argv[]){
 	server_addr.sin_port = htons(PORT);
 
 	//3.142.184.183	
-	if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0){
+	if(inet_pton(AF_INET, "3.142.184.183", &server_addr.sin_addr) <= 0){
 		std::cerr << "Invalid address given" << std::endl;
 		abort();
 	}	
@@ -125,8 +125,8 @@ void initate_list_command(int client_fd){
 		0
 	);
 	buffer[bytes_recv] = '\0';
-	
-	if(buffer[0] == '0'){
+
+	if(buffer[0] == '1'){
 		std::cout << "no files on the server" << std::endl;
 		return;
 	}
