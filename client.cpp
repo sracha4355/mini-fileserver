@@ -66,7 +66,7 @@ int main(int argc, char * argv[]){
 	server_addr.sin_port = htons(PORT);
 
 	//3.142.184.183	
-	if(inet_pton(AF_INET, "3.142.184.183", &server_addr.sin_addr) <= 0){
+	if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0){
 		std::cerr << "Invalid address given" << std::endl;
 		abort();
 	}	
