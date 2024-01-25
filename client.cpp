@@ -10,10 +10,11 @@
 
 // change later
 #include "utils.cpp"
-
+/*
 #define PORT 8080
 #define FILE_STORE "./fileStore/"
 #define BUFFER_SIZE 1024
+*/
 
 void recv_file(int, const std::string&);
 void upload_file(int, const std::string&);
@@ -26,8 +27,28 @@ void parse_list_file_payload(const std::string&);
 std::string extract_filename(const char * buffer, const size_t& size);
 std::streampos get_filesize(const std::string&, bool);
 
+/*std::string FILE_STORE;
+int PORT;
+size_t BUFFER_SIZE;*/
+std::string FILE_STORE;
+int PORT;
+size_t BUFFER_SIZE;
 
-int main(){
+int main(int argc, char * argv[]){
+	if(argc < 4){
+		std::cout << "Define required arguments in the order file storage, port, buffer size" << std::endl;
+		return 1;
+	}	
+
+	
+	FILE_STORE = argv[1];
+	std::string str = argv[2];
+	PORT = std::stoi(str);
+	std::stringstream stream(argv[3]);
+	stream >> BUFFER_SIZE;
+	std::cout << "args: " << FILE_STORE << " " << PORT << " " <<  BUFFER_SIZE << std::endl;
+	
+	
 	int client_fd;
 	struct sockaddr_in server_addr;
 	
@@ -234,12 +255,10 @@ void initate_get_command(int client_fd, const std::string& command){
 		command.length(),
 		0
 	);
-
 	recv_file(
 		client_fd,
 	 	extract_filename(&command[0], command.length())
-	);
-	
+	);	
 }
 
 
