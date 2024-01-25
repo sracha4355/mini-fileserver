@@ -133,7 +133,7 @@ void list_files(int client_fd){
 	auto stream_content = oss.str();
 	if(stream_content.length() == 0){
 		std::cout << "no files to send" << std::endl;
-		std::string err_code = "1";
+		std::string err_code = "0";
 		send(
 			client_fd,
 			&err_code[0],
