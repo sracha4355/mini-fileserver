@@ -6,8 +6,10 @@
 #include <cstdio>
 #include <unistd.h>
 #include <vector>
+#include <cstring>
 #include <sstream>
 #include <fstream>
+#include "utils.cpp"
 
 
 #define PORT 8080
@@ -19,7 +21,9 @@ void sendfile(const std::string& filename, int);
 void recv_file_command(int, const std::string&);
 void recv_file(const std::string& filename, int);
 void delete_file(int, const std::string&);
+void list_files(int);
 std::streampos get_filesize(const std::string& filename, bool);
+
 
 int main(){
 	std::cout << "Setting up server..." << std::endl << "Files will be sent to " << FILE_STORE << std::endl;
@@ -98,9 +102,13 @@ int main(){
 			recv_file_command(client_fd, extract_filename(command_buffer, bytes_recv));
 		} else if(command_buffer[0] == 'd' && bytes_recv > 2 && command_buffer[1] == ' '){
 			delete_file(client_fd, extract_filename(command_buffer, bytes_recv));
-		} else if(command_buffer == "exit"){
+		} else if(strcmp(command_buffer, "list files") == 0){
+			std::cout << "need to send back a list of commands to client" << std::endl;
+			list_files(client_fd);
+		} else if(strcmp(command_buffer, "exit") == 0){
 			break;
 		}
+		
 		
 	}
 	
@@ -108,6 +116,47 @@ int main(){
 	close(client_fd);
 	
 	return 0;
+}
+void list_files(int client_fd){
+	auto files = utils::get_files_in_directory(FILE_STORE);
+	std::ostringstream oss;
+	for(const auto& file: files){
+		oss << std::to_string(file.filename.length()) 
+			<< ":"
+			<< std::to_string(file.filesize)
+			<< ":"
+			<< file.filename
+			<< ":";
+	}
+	std::cout << "serv here" << std::endl;
+	std::ostringstream final_oss;
+	auto stream_content = oss.str();
+	oss.str("");
+	oss.clear();
+	oss << std::to_string(stream_content.length()) << "|" << stream_content;
+	auto buffer = oss.str();
+	if(buffer.length() == 0){
+		std::cout << "no files to send" << std::endl;
+		std::string err_code = "1";
+		send(
+			client_fd,
+			&err_code[0],
+			1,
+			0
+		);
+		return;
+	}
+	std::cout << "serv heeeee" << std::endl;
+	std::cout << buffer << std::endl;
+	send(
+		client_fd,
+		&buffer[0],
+		buffer.length(),
+		0
+	);
+
+	std::cout << "sent list of files to client" << std::endl;
+
 }
 
 void delete_file(int client_fd, const std::string& filename){

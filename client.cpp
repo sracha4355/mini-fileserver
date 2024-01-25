@@ -8,7 +8,8 @@
 #include <vector>
 #include <sstream>
 
-//Currently stoi is failing because it is not extracting the filesize from the buffer properly
+// change later
+#include "utils.cpp"
 
 #define PORT 8080
 #define FILE_STORE "./fileStore/"
@@ -19,6 +20,8 @@ void upload_file(int, const std::string&);
 void initate_upload_command(int, const std::string&);
 void initate_get_command(int, const std::string&);
 void initate_delete_command(int, const std::string&);
+void initate_list_command(int);
+void parse_list_file_payload(const std::string&);
 
 std::string extract_filename(const char * buffer, const size_t& size);
 std::streampos get_filesize(const std::string&, bool);
@@ -69,8 +72,10 @@ int main(){
 			initate_upload_command(client_fd, command);
 		}
 		else if(command[0] == 'd' and command.length() > 2 and command[1] == ' '){
-			std::cout << "delete command" << std::endl;
 			initate_delete_command(client_fd, command);
+		}
+		else if(command == "list files"){
+			initate_list_command(client_fd);
 		}
 	}
 	
@@ -78,6 +83,96 @@ int main(){
 	
 	return 0;
 }
+
+void initate_list_command(int client_fd){
+	std::cout << "list command" << std::endl;
+	std::string command = "list files";
+	char buffer[BUFFER_SIZE];
+	send(
+		client_fd,
+		&command[0],
+		command.length(),
+		0
+	);
+	std::ostringstream files_data;
+	ssize_t bytes_recv = recv(
+		client_fd,
+		buffer,
+		BUFFER_SIZE - 1,
+		0
+	);
+	buffer[bytes_recv] = '\0';
+	std::ostringstream oss;
+	size_t index = 0;
+	while(buffer[index] != '|'){
+		oss << buffer[index];
+		index++;
+	}
+	int payload_size = std::stoi(oss.str());
+	oss.str("");
+	oss.clear();
+	index++;
+	int read_bytes = 0;
+	while(true){
+		oss << buffer[index];
+		read_bytes++;
+		index++;
+		if(read_bytes == payload_size) break;
+		if(index == bytes_recv) {
+			index = 0;
+			bytes_recv = recv(
+				client_fd, 
+				buffer,
+				BUFFER_SIZE - 1,
+				0
+			);
+			buffer[bytes_recv] = '\0';
+		}
+	}
+	std::cout << "Current files on the server:" << std::endl;
+	std::cout << "FILENAME | SIZE" << std::endl;
+	parse_list_file_payload(oss.str());
+}
+
+void parse_list_file_payload(const std::string& payload){
+	std::vector<std::string> tokens;
+	using Stream = std::ostringstream;
+	Stream stream;
+	int state = 0;
+	// state - 0 -> filename length, state - 0 -> filesize state - 2 -> the filename
+	size_t i = 0;
+	while(i < payload.length() - 1){
+		size_t j = i;
+		while(payload[j] != ':'){
+			stream << payload[j];
+			j++;
+		}
+		j++;
+		int filename_len = std::stoi(stream.str());
+		stream.str("");
+		stream.clear();
+		while(payload[j] != ':'){
+			stream << payload[j];
+			j++;
+		}
+		j++;
+		std::string filesize = std::to_string(std::stoull(stream.str())/1000000.0) + "MB";
+		stream.str("");
+		stream.clear();
+		for(size_t k = 0; k < filename_len; k++){
+			stream << payload[j];
+			j++;
+		}
+		std::string filename = stream.str();
+		stream.str("");
+		stream.clear();
+		j++;
+		i = j;
+		std::cout << filename << "|" << filesize << std::endl;
+	}	
+
+}
+
 
 void initate_delete_command(int client_fd, const std::string& command){
 	std::string filename = extract_filename(&command[0], command.length());
@@ -87,7 +182,6 @@ void initate_delete_command(int client_fd, const std::string& command){
 		command.length(),
 		0
 	);
-	
 	char buffer[BUFFER_SIZE];
 	buffer[recv(
 		client_fd,
@@ -95,7 +189,6 @@ void initate_delete_command(int client_fd, const std::string& command){
 		BUFFER_SIZE - 1,
 		0
 	)] = '\0';
-
 	if(buffer[0] == '0'){
 		std::cout << "File: " << filename << " successfully deleted" << std::endl; 
 	} else if(buffer[0] == '1'){
