@@ -128,9 +128,20 @@ void list_files(int client_fd){
 			<< file.filename
 			<< ":";
 	}
-	std::cout << "serv here" << std::endl;
+
 	std::ostringstream final_oss;
 	auto stream_content = oss.str();
+	if(stream_content.length() == 0){
+		std::cout << "no files to send" << std::endl;
+		std::string err_code = "1";
+		send(
+			client_fd,
+			&err_code[0],
+			1,
+			0
+		);
+		return;
+	}
 	oss.str("");
 	oss.clear();
 	oss << std::to_string(stream_content.length()) << "|" << stream_content;
@@ -146,7 +157,6 @@ void list_files(int client_fd){
 		);
 		return;
 	}
-	std::cout << "serv heeeee" << std::endl;
 	std::cout << buffer << std::endl;
 	send(
 		client_fd,
