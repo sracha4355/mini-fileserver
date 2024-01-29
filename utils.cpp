@@ -29,5 +29,12 @@ std::vector<file_data> get_files_in_directory(const std::string& dir_path){
 	}
 	return files;
 }
+
+std::string trim(const std::string& str,  const char* t = " \t\n\r\f\v"){	
+	std::size_t start = str.find_first_not_of(t);
+	std::size_t end = str.find_last_not_of(t);
+	return str.substr(start, end - start + 1);
+}
+
 } //namespace utils
 	

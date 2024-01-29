@@ -66,7 +66,7 @@ int main(int argc, char * argv[]){
 	server_addr.sin_port = htons(PORT);
 
 	//3.142.184.183	
-	if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0){
+	if(inet_pton(AF_INET, "3.142.184.183", &server_addr.sin_addr) <= 0){
 		std::cerr << "Invalid address given" << std::endl;
 		abort();
 	}	
@@ -331,9 +331,11 @@ std::streampos get_filesize(const std::string& filename, bool binary_mode){
 	std::ios::openmode flags = std::ios::in | std::ios::ate;
 	if(binary_mode)
 		flags |= std::ios::binary;
+	std::cout << "checking dir: " << FILE_STORE + filename << '\n';
 	std::ifstream file(FILE_STORE + filename, flags);
-	if(!file.is_open())
+	if(!file.is_open()){
 		return -1;
+	}	
 	std::streampos pos = file.tellg();
 	file.close();
 	return pos;
