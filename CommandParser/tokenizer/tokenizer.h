@@ -5,17 +5,6 @@
 #include <utility>
 #include <iostream>
 
-/**
-* GET-COMMAND-IDENTIFIER -> get
-* UPLOAD-COMMAND-IDENTIFIER -> upload
-* DELETE-COMMAND-IDENTIFIER -> delete
-* LIST-FILES-COMMAND-IDENTIFIER -> list file
-* FILEPATH -> regex for a filepath
-* FLAG -> regex for a flag
-* WHITESPACE -> " "
-*
-*/
-
 namespace parser{
 using token = std::pair<std::string, std::string>; // TOKEN TYPE, VALUE
 using token_spec = std::pair<std::string, std::regex>;
@@ -26,6 +15,7 @@ class tokenizer{
 		void tokenize_input_stream();
 		bool stream_has_tokens(); //check if input string is completely read
 		void print_tokens();
+		std::vector<token> get_token_stream();
 		
 	private:
 		std::vector<token> tokens;
@@ -36,11 +26,12 @@ class tokenizer{
 			token_spec("UPLOAD-COMMAND-IDENTIFIER", std::regex("^upload")),
 			token_spec("DELETE-COMMAND-IDENTIFIER", std::regex("^delete")),
 			token_spec("LIST-FILES-COMMAND-IDENTIFIER", std::regex("^list files")),
-			//token_spec("FILEPATH", std::regex("^((?:[^/]*/)*)(.*)")),
+			token_spec("FILEPATH", std::regex("^/(?:[a-zA-Z0-9_.-]+/?)+")),
 			token_spec("FLAG", std::regex("^-[a-z]")),
-			token_spec("WHITESPACE", std::regex("^ ")),
+			token_spec("WHITESPACE", std::regex("^\\s+")),
 			token_spec("END", std::regex("^ END"))
 		};
+		bool stream_fully_tokenized = false;
 		
 };
 }
