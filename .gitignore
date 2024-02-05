@@ -2,3 +2,7 @@ file/
 fileStore/
 server
 client
+*.gch
+*.o
+tokenizerTests
+pTests
