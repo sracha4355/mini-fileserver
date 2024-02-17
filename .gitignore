@@ -6,3 +6,6 @@ client
 *.o
 tokenizerTests
 pTests
+build/
+to-do.txt
+*.swp

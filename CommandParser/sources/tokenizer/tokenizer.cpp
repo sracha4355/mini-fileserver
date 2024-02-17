@@ -48,7 +48,11 @@ token tokenizer::get_next_token(){
 		cursor += match.str().length();
 		return token(token_type, match.str());
 	}
-	return token("INVALID TOKEN", "INVALID TOKEN");
+	std::size_t _token = 0;
+	std::string::iterator input_beginning = input.begin();
+	while(input_beginning != cursor) _token++;
+	throw UnexpectedToken(_token);
+	std::abort(); // should never reach here
 }
 
 bool tokenizer::stream_has_tokens(){
