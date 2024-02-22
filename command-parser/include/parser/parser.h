@@ -89,12 +89,15 @@ class parser{
 		bool match_command_body();
 		bool match_flags();
 		bool match_file_args();
+		bool match_upload_command_body();
+		bool match_delete_command_body();
 		/*****************/
 		/* TERMINALS */
 		bool match_flag();
 		bool match_filepath();
 		bool match_filename();
 		bool match_whitespace();
+		bool match_folderpath();
 		/*************/
 		/* HELPER FUNCTIONS */
 		inline void advance_token();

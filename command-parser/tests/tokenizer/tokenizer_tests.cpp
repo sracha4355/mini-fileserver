@@ -15,6 +15,32 @@ bool token_stream_equality(const std::vector<token>& tokens, const std::vector<t
 	return true;
 }
 
+TEST(TokenizerTests, tokenizeFolderpathAndFilepath){
+	parser::tokenizer tokenizer("/file/path/file /folder/path/_-./ ");
+	tokenizer.tokenize_input_stream();
+	std::vector<token> _tokens = {
+		std::make_pair("FILEPATH", "/file/path/file"),
+		std::make_pair("WHITESPACE", " "),
+		std::make_pair("FOLDERPATH", "/folder/path/_-./"),
+		std::make_pair("WHITESPACE", " "),
+	};
+	ASSERT_EQ(tokenizer.is_stream_tokenized(), true);
+	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens), true);
+	
+	std::string new_input = "/file/path/file/path/ /file/path";
+	tokenizer.reset(new_input);
+	tokenizer.tokenize_input_stream();
+	
+	std::vector<token> _tokens_test_two = {
+		std::make_pair("FOLDERPATH", "/file/path/file/path/"),
+		std::make_pair("WHITESPACE", " "),
+		std::make_pair("FILEPATH", "/file/path"),
+	};
+	ASSERT_EQ(tokenizer.is_stream_tokenized(), true);
+	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens_test_two), true);
+}
+
+
 TEST(TokenizerTests, TokenizeGetCommandWithArgs_Filename_Filename_andWhiteSpace){
 	parser::tokenizer tokenizer("    get   -f    -r  -g  filename1     filename2    ");
 	tokenizer.tokenize_input_stream();
@@ -37,49 +63,33 @@ TEST(TokenizerTests, TokenizeGetCommandWithArgs_Filename_Filename_andWhiteSpace)
 	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens), true);
 } 
 
-TEST(TokenizerTests, TokenizeGetCommandWithArgs_Filepath_Filename){
-	parser::tokenizer tokenizer("get -f -r -g  filename1 /filename2/f    ");
+TEST(TokenizerTests, TokenizeGetCommandWith_Filename_Filepath_Folderpath){
+	parser::tokenizer tokenizer("get filename1 -f -r -g filename1 /filename2/f/f /filename2/f/f/ ");
 	tokenizer.tokenize_input_stream();
 	std::vector<token> _tokens = {
 		std::make_pair("GET-COMMAND-IDENTIFIER", "get"),
 		std::make_pair("WHITESPACE", " "),
-		std::make_pair("FLAG", "-f"),
-		std::make_pair("WHITESPACE", " "),
-		std::make_pair("FLAG", "-r"),
-		std::make_pair("WHITESPACE", " "),
-		std::make_pair("FLAG", "-g"),
-		std::make_pair("WHITESPACE", "  "),
 		std::make_pair("FILENAME", "filename1"),
 		std::make_pair("WHITESPACE", " "),
-		std::make_pair("FILEPATH", "/filename2/f"),
-		std::make_pair("WHITESPACE", "    "),
-	};
-	ASSERT_EQ(tokenizer.is_stream_tokenized(), true);
-	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens), true);
-}
-
-TEST(TokenizerTests, TokenizeGetCommandWithArgs_Filepath_Filepath){
-	parser::tokenizer tokenizer("get -f -r -g  /filename1/f /filename2/f    ");
-	tokenizer.tokenize_input_stream();
-	std::vector<token> _tokens = {
-		std::make_pair("GET-COMMAND-IDENTIFIER", "get"),
-		std::make_pair("WHITESPACE", " "),
 		std::make_pair("FLAG", "-f"),
 		std::make_pair("WHITESPACE", " "),
 		std::make_pair("FLAG", "-r"),
 		std::make_pair("WHITESPACE", " "),
 		std::make_pair("FLAG", "-g"),
-		std::make_pair("WHITESPACE", "  "),
-		std::make_pair("FILEPATH", "/filename1/f"),
 		std::make_pair("WHITESPACE", " "),
-		std::make_pair("FILEPATH", "/filename2/f"),
-		std::make_pair("WHITESPACE", "    "),
+		std::make_pair("FILENAME", "filename1"),
+		std::make_pair("WHITESPACE", " "),
+		std::make_pair("FILEPATH", "/filename2/f/f"),
+		std::make_pair("WHITESPACE", " "),
+		std::make_pair("FOLDERPATH", "/filename2/f/f/"),
+		std::make_pair("WHITESPACE", " "),
 	};
 	ASSERT_EQ(tokenizer.is_stream_tokenized(), true);
 	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens), true);
 }
 
-TEST(TokenizerTests, TokenizeListFile){
+
+TEST(TokenizerTests, TokenizeListFiles){
 	parser::tokenizer tokenizer(" list files ");
 	tokenizer.tokenize_input_stream();
 	std::vector<token> _tokens = {
@@ -91,38 +101,40 @@ TEST(TokenizerTests, TokenizeListFile){
 	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens), true);
 }
 
-TEST(TokenizerTests, TokenizeUploadCommand){
-	parser::tokenizer tokenizer("upload filename/filepath/");
+TEST(TokenizerTests, TokenizeUploadAndDeleteCommand){
+	parser::tokenizer tokenizer("upload filename /folderpath/ -g");
 	tokenizer.tokenize_input_stream();
 	std::vector<token> _tokens = {
 		std::make_pair("UPLOAD-COMMAND-IDENTIFIER", "upload"),
 		std::make_pair("WHITESPACE", " "),
 		std::make_pair("FILENAME", "filename"),
-		std::make_pair("FILEPATH", "/filepath/"),
-	};
-	ASSERT_EQ(tokenizer.is_stream_tokenized(), true);
-	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens), true);
-}
-
-TEST(TokenizerTests, TokenizeDeleteCommand){
-	parser::tokenizer tokenizer("delete -f -g filename/filepath/");
-	tokenizer.tokenize_input_stream();
-	std::vector<token> _tokens = {
-		std::make_pair("DELETE-COMMAND-IDENTIFIER", "delete"),
 		std::make_pair("WHITESPACE", " "),
-		std::make_pair("FLAG", "-f"),
+		std::make_pair("FOLDERPATH", "/folderpath/"),
 		std::make_pair("WHITESPACE", " "),
 		std::make_pair("FLAG", "-g"),
-		std::make_pair("WHITESPACE", " "),
-		std::make_pair("FILENAME", "filename"),
-		std::make_pair("FILEPATH", "/filepath/"),
 	};
 	ASSERT_EQ(tokenizer.is_stream_tokenized(), true);
 	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens), true);
+	
+	tokenizer.reset("delete filename /folderpath/ -g");
+	tokenizer.tokenize_input_stream();
+	std::vector<token> _tokens_after_reset = {
+		std::make_pair("DELETE-COMMAND-IDENTIFIER", "delete"),
+		std::make_pair("WHITESPACE", " "),
+		std::make_pair("FILENAME", "filename"),
+		std::make_pair("WHITESPACE", " "),
+		std::make_pair("FOLDERPATH", "/folderpath/"),
+		std::make_pair("WHITESPACE", " "),
+		std::make_pair("FLAG", "-g"),
+	};
+	
+	ASSERT_EQ(tokenizer.is_stream_tokenized(), true);
+	ASSERT_EQ(token_stream_equality(tokenizer.get_token_stream(), _tokens_after_reset), true);
 }
 
 TEST(TokenizerTests, TokenizeInvalidCommandTestShouldThrowException){
 	parser::tokenizer tokenizer("delete --f -g filename/filepath/");
+	tokenizer.print_tokens();
 	EXPECT_THROW(tokenizer.tokenize_input_stream(), UnexpectedToken);
 	ASSERT_EQ(tokenizer.is_stream_tokenized(), false);
 }

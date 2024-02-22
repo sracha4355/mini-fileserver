@@ -18,7 +18,7 @@ class tokenizer{
 		void print_tokens();
 		std::vector<token> get_token_stream();
 		bool is_stream_tokenized() { return stream_fully_tokenized;}
-		
+		void reset(const std::string&);
 	private:
 		std::vector<token> tokens;
 		std::string input;
@@ -28,14 +28,14 @@ class tokenizer{
 			token_spec("UPLOAD-COMMAND-IDENTIFIER", std::regex("^upload")),
 			token_spec("DELETE-COMMAND-IDENTIFIER", std::regex("^delete")),
 			token_spec("LIST-FILES-COMMAND-IDENTIFIER", std::regex("^list files")),
-			token_spec("FILEPATH", std::regex("^/(?:[a-zA-Z0-9_.-]+/?)+")),
-			token_spec("FLAG", std::regex("^-[a-z]")),
+			token_spec("FOLDERPATH", std::regex("^(/[A-Za-z0-9-_.]+)+/((?=$)|(?=\\s))")),
+			token_spec("FILEPATH", std::regex("^(/[A-Za-z0-9-_.]+)+((?=$)|(?=\\s))")),
 			token_spec("WHITESPACE", std::regex("^\\s+")),
-			token_spec("FILENAME", std::regex("^[a-zA-Z0-9_]+([a-zA-Z0-9_.-])*")),
+			token_spec("FILENAME", std::regex("^[a-zA-Z0-9._]+[a-zA-Z0-9._-]*((?=$)|(?=\\s))")),
+			token_spec("FLAG", std::regex("^-[a-z]((?=$)|(?=\\s))")),
 			token_spec("END", std::regex("^ END"))
 		};
 		bool stream_fully_tokenized = false;
-
 		
 };
 }
