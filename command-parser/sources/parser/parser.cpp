@@ -11,12 +11,11 @@
 *			   DELETE-COMMAND-IDENTIFER delete-command-body | 
 *			   LIST-FILES-IDENTIFIER
 *
-*   file-args -> FILEPATH FILEPATH |
-*				 FILENAME FILEPATH | 
-*				 FILEPATH FILENAME |
-*				 FILENAME FILENAME
+*    
+*				  
+*
 * GET-COMMAND GRAMMAR
-*	get-command -> command-body
+*	get-command -> get-command-body
 *
 * UPLOAD-COMMAND GRAMMAR
 *	upload-command -> upload-command-body
@@ -28,8 +27,14 @@
 *   command-body -> flags file-args |
 *				    file-args
 *
-*   upload-command-body -> flags filename|flags folderpath filename
-*   delete-command-body -> flags folderpath|flags folderpath filename
+*   upload-command-body -> flags upload-command-args|upload-command-args
+*   get-command-body -> flags get-command-args | get-command-args
+*   upload-command-args -> filename|filename folderpath|filename filepath|folderpath folderpath
+*   delete-command-body -> flags delete-command-args|delete-command-args
+*	delete-command-args -> folderpath| filename | filepath
+*	get-command-args -> FILEPATH FILEPATH |
+*				 FILENAME FILEPATH | 
+*				 FOLDERPATH FOLDERPATH |
 *
 * 	FILEPATH -> #regex for a valid filepath
 *	FLAG -> "-[a-z]"
@@ -40,6 +45,12 @@ namespace parser{
 		this -> current_token = 0;
 	}
 	parser::parser(){}
+	
+	inline int parser::tokens_left(){
+		if(current_token < tokens.size())
+			return tokens.size() - current_token - 1;
+		return -1;
+	}
 	
 	bool parser::parse(){
 		bool res = match_command();
@@ -53,46 +64,68 @@ namespace parser{
 		}	
 	}
 
-	bool parser::match_whitespace(){
-		std::size_t orig_token = current_token;
-		if(tokens[current_token].first == "WHITESPACE"){
-			advance_token();
-			return PARSE_SUCCESS;		
+	bool parser::match_upload_command_args(){
+		std::size_t nested_orig_token = current_token;
+		reset_token(nested_orig_token);
+		if(match_terminal("FILENAME") == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_terminal("FOLDERPATH") == PARSE_SUCCESS){
+					return PARSE_SUCCESS;
+				}	
+			}
 		}
-		reset_token(orig_token);
+		reset_token(nested_orig_token);
+		if(match_terminal("FILENAME") == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_terminal("FILEPATH") == PARSE_SUCCESS){	
+					return PARSE_SUCCESS;
+				}
+			}
+		}
+		reset_token(nested_orig_token);
+		if(match_terminal("FOLDERPATH") == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_terminal("FOLDERPATH") == PARSE_SUCCESS){	
+					return PARSE_SUCCESS;
+				}
+			}
+		}
+		reset_token(nested_orig_token);
+		if(match_terminal("FILENAME") == PARSE_SUCCESS){
+			return PARSE_SUCCESS;
+		}
+		reset_token(nested_orig_token);
 		return PARSE_FAILURE;
 	}
-	
-	//upload-command-body -> flags filename|flags folderpath filename
+
 	bool parser::match_upload_command_body(){
 		std::size_t orig_token = current_token;
 		if(match_flags() == PARSE_SUCCESS){
-			if(match_whitespace() == PARSE_SUCCESS){
-					if(match_filename() == PARSE_SUCCESS){
-						return PARSE_SUCCESS;
-					}
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_upload_command_args() == PARSE_SUCCESS){
+					return PARSE_SUCCESS;
+				}
 			}
 		}
 		reset_token(orig_token);
-		if(match_flags() == PARSE_SUCCESS){
-			if(match_whitespace() == PARSE_SUCCESS){
-					if(match_folderpath() == PARSE_SUCCESS){
-						if(match_whitespace() == PARSE_SUCCESS){
-								if(match_filename() == PARSE_SUCCESS){
-									return PARSE_SUCCESS;
-								}
-						}
-					}
-			}
+		if(match_upload_command_args() == PARSE_SUCCESS){
+			return PARSE_SUCCESS;
 		}
 		reset_token(orig_token);
 		return PARSE_FAILURE;
 	}
 	
-	bool parser::match_folderpath(){
+	bool parser::match_delete_command_args(){
 		std::size_t orig_token = current_token;
-		if(tokens[current_token].first == "FOLDERPATH"){
-			advance_token();
+		if(match_terminal("FOLDERPATH") == PARSE_SUCCESS){
+			return PARSE_SUCCESS;
+		}
+		reset_token(orig_token);
+		if(match_terminal("FILENAME") == PARSE_SUCCESS){
+			return PARSE_SUCCESS;
+		}
+		reset_token(orig_token);
+		if(match_terminal("FILEPATH") == PARSE_SUCCESS){
 			return PARSE_SUCCESS;
 		}
 		reset_token(orig_token);
@@ -100,24 +133,36 @@ namespace parser{
 	}
 	
 	bool parser::match_delete_command_body(){
+		std::size_t orig_token = current_token;
+		if(match_flags() == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if (match_delete_command_args() == PARSE_SUCCESS){
+					return PARSE_SUCCESS;
+				}
+			}
+		}
+		reset_token(orig_token);
+		if (match_delete_command_args() == PARSE_SUCCESS){
+			return PARSE_SUCCESS;
+		}
+		reset_token(orig_token);
 		return PARSE_FAILURE;
 	}
 
 	bool parser::match_command(){
 		eat_whitespace();
-		std::cout << "in match_command" << '\n';
 		std::size_t orig_token = current_token;
 		if( tokens[current_token].first == "GET-COMMAND-IDENTIFIER"){
 			advance_token();
-			if(match_whitespace() == PARSE_SUCCESS){
-				if(match_command_body() == PARSE_SUCCESS) return PARSE_SUCCESS;
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_get_command_body() == PARSE_SUCCESS) return PARSE_SUCCESS;
 			}
 		}
 		
 		reset_token(orig_token);
 		if(tokens[current_token].first == "UPLOAD-COMMAND-IDENTIFIER"){
 			advance_token();
-			if(match_whitespace() == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
 				if(match_upload_command_body() == PARSE_SUCCESS) return PARSE_SUCCESS;
 			}
 		}
@@ -125,7 +170,7 @@ namespace parser{
 		reset_token(orig_token);
 		if(tokens[current_token].first == "DELETE-COMMAND-IDENTIFIER"){
 			advance_token();
-			if(match_whitespace() == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
 				if(match_delete_command_body() == PARSE_SUCCESS) return PARSE_SUCCESS;
 			}
 		}
@@ -140,65 +185,44 @@ namespace parser{
 		return PARSE_FAILURE;
 	}
 	
-	//flags -> FLAG flags|FLAG
 	bool parser::match_flags(){
-		// LEFT OFF WORKING HERE
 		std::size_t orig_token = current_token;
-		if(match_flag() == PARSE_SUCCESS){
-			std::cout << "found a flag" << '\n';
-			if(match_whitespace() == PARSE_SUCCESS){
+		if(match_terminal("FLAG") == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
 				if(match_flags() == PARSE_SUCCESS){
 					return PARSE_SUCCESS;
 				}
 			}
 		}
 		reset_token(orig_token);
-		if(match_flag() == PARSE_SUCCESS){
+		if(match_terminal("FLAG") == PARSE_SUCCESS){
 				return PARSE_SUCCESS;
 		}
 		reset_token(orig_token);
 		return PARSE_FAILURE;
 	}
-	
-	bool parser::match_file_args(){
-		std::cout << "current token" << tokens[current_token].first << " " << tokens[current_token].second << '\n';
-		std::cout << "in match_file_args" << '\n';
+
+	bool parser::match_get_file_args(){
 		std::size_t orig_token = current_token;
-		if(match_filepath() == PARSE_SUCCESS){
-			std::cout << "matched a filepath" << '\n';
-			if(match_whitespace() == PARSE_SUCCESS){
-				if(match_filepath() == PARSE_SUCCESS){
-					std::cout << "matched a filepath" << '\n';
-					eat_whitespace();
+		if(match_terminal("FILEPATH") == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_terminal("FILEPATH")== PARSE_SUCCESS){
 					return PARSE_SUCCESS;
 				}
 			}
 		}
 		reset_token(orig_token);
-		if(match_filename() == PARSE_SUCCESS){
-			std::cout << "matched a filename1" << '\n';
-			if(match_whitespace() == PARSE_SUCCESS){
-				if(match_filepath() == PARSE_SUCCESS){
-					eat_whitespace();
+		if(match_terminal("FILENAME")== PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_terminal("FILEPATH")== PARSE_SUCCESS){
 					return PARSE_SUCCESS;
 				}
 			}
 		}
 		reset_token(orig_token);
-		if(match_filepath() == PARSE_SUCCESS){
-			if(match_whitespace() == PARSE_SUCCESS){
-				if(match_filename() == PARSE_SUCCESS){
-					eat_whitespace();
-					return PARSE_SUCCESS;
-				}
-			}
-		}
-		reset_token(orig_token);
-		if(match_filename() == PARSE_SUCCESS){
-			std::cout << "matched a filename2" << '\n';
-			if(match_whitespace() == PARSE_SUCCESS){
-				if(match_filename() == PARSE_SUCCESS){
-					eat_whitespace();
+		if(match_terminal("FOLDERPATH") == PARSE_SUCCESS){
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_terminal("FOLDERPATH") == PARSE_SUCCESS){
 					return PARSE_SUCCESS;
 				}
 			}
@@ -207,50 +231,19 @@ namespace parser{
 		return PARSE_FAILURE;
 	}
 	
-	bool parser::match_filepath(){
-		std::size_t orig_token = current_token;
-		if(tokens[current_token].first == "FILEPATH"){
-			advance_token();
-			return PARSE_SUCCESS;
-		}
-		reset_token(orig_token);
-		return PARSE_FAILURE;
-	}
-	bool parser::match_filename(){
-		std::size_t orig_token = current_token;
-		if(tokens[current_token].first == "FILENAME"){
-			advance_token();
-			return PARSE_SUCCESS;
-		}
-		reset_token(orig_token);
-		return PARSE_FAILURE;
-	}
-	
-	bool parser::match_flag(){
-		std::size_t orig_token = current_token;
-		if(tokens[current_token].first == "FLAG"){
-			advance_token();
-			return PARSE_SUCCESS;
-		}
-		reset_token(orig_token);
-		return PARSE_FAILURE;
-	}
-	
-	bool parser::match_command_body(){
-		std::cout << "in match_command_body" << '\n';
+		
+	bool parser::match_get_command_body(){
 		std::size_t orig_token = current_token;
 		if(match_flags() == PARSE_SUCCESS){
-			std::cout << "currently in match_command_body current token" << tokens[current_token].first << " " << tokens[current_token].second << '\n';
-			if(match_whitespace() == PARSE_SUCCESS){
-				if(match_file_args() == PARSE_SUCCESS){
-					std::cout << "found flags and file_args" << '\n';
+			if(match_terminal("WHITESPACE") == PARSE_SUCCESS){
+				if(match_get_file_args() == PARSE_SUCCESS){
 					eat_whitespace();
 					return PARSE_SUCCESS;
 				}
 			}
 		}
 		reset_token(orig_token);
-		if(match_file_args() == PARSE_SUCCESS) {
+		if(match_get_file_args() == PARSE_SUCCESS) {
 			eat_whitespace();
 			return PARSE_SUCCESS;
 		}
@@ -264,5 +257,17 @@ namespace parser{
 	inline void parser::reset_token(std::size_t orig_token){
 		current_token = orig_token;
 	}
+	
+	bool parser::match_terminal(const std::string& terminal_token_type){
+		if(tokens_left() < 0) return PARSE_FAILURE;
+		std::size_t orig_token = current_token;
+		if(tokens[current_token].first == terminal_token_type){
+			advance_token();
+			return PARSE_SUCCESS;
+		}
+		reset_token(orig_token);
+		return PARSE_FAILURE;
+	}
+	
 }//namespace parser
 

@@ -77,8 +77,6 @@ class parser{
 		parser();
 		bool parse();
 
-		
-		
 	private:
 		/* NON-TERMINALS */
 		bool match_command();
@@ -86,23 +84,22 @@ class parser{
 		bool match_delete_command();
 		bool match_upload_command();
 		bool match_list_files_command();
-		bool match_command_body();
+		bool match_get_command_body();
 		bool match_flags();
-		bool match_file_args();
+		bool match_get_file_args();
 		bool match_upload_command_body();
+		bool match_upload_command_args();
 		bool match_delete_command_body();
+		bool match_delete_command_args();
 		/*****************/
 		/* TERMINALS */
-		bool match_flag();
-		bool match_filepath();
-		bool match_filename();
-		bool match_whitespace();
-		bool match_folderpath();
+		bool match_terminal(const std::string&);
 		/*************/
 		/* HELPER FUNCTIONS */
 		inline void advance_token();
 		inline void reset_token(std::size_t);
 		inline void eat_whitespace();
+		inline int tokens_left();
 		/********************/
 		/* MEMBER VARIABLES */
 		std::vector<token> tokens;
