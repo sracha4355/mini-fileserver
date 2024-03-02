@@ -74,8 +74,10 @@ using Stream = std::ostringstream;
 class parser{
 	public:
 		parser(const std::vector<token>& tokens);
-		parser();
 		bool parse();
+		const std::vector<token>& access_tokens() { 
+			return tokens; 
+		};
 
 	private:
 		/* NON-TERMINALS */

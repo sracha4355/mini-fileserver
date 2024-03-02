@@ -44,7 +44,6 @@ namespace parser{
 		this -> tokens = tokens;
 		this -> current_token = 0;
 	}
-	parser::parser(){}
 	
 	inline int parser::tokens_left(){
 		if(current_token < tokens.size())
@@ -53,6 +52,7 @@ namespace parser{
 	}
 	
 	bool parser::parse(){
+		if(tokens_left() == -1) return false;
 		bool res = match_command();
 		eat_whitespace();
 		if (current_token < tokens.size()) return PARSE_FAILURE;
@@ -62,6 +62,7 @@ namespace parser{
 		while(current_token < tokens.size() and tokens[current_token].first == "WHITESPACE"){
 			advance_token();
 		}	
+		
 	}
 
 	bool parser::match_upload_command_args(){

@@ -56,7 +56,7 @@ TEST(ParserTestsGetCommand, parseGetCommandWithArgs_Filepath_Filepath){
 
 //upload-command-body -> flags filename|flags filename folderpath | flags filename filepath | flags folderpath folderpath
 
-/*
+
 TEST(ParserTestsUploadCommand, parseUploadCommandWithArgs_Filename){
 	parser::tokenizer tokenizer("upload   -f    filename   ");
 	tokenizer.tokenize_input_stream();
@@ -127,7 +127,7 @@ TEST(ParserTestsDeleteCommand, parseDeleteCommandWithNoFlagsButWithArgs_filename
 	ASSERT_EQ(parser.parse(), true);
 }
 
-*/
+
 int main(int argc, char **argv) {
 	testing::InitGoogleTest(&argc, argv);	
 	return RUN_ALL_TESTS();
